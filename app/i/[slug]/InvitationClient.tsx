@@ -11,6 +11,7 @@ type Props = {
   ceremonyLabel?: string | null;
   partyLabel?: string | null;
   slug?: string;
+  accessCode?: string | null;
 };
 
 export default function InvitationClient({
@@ -20,13 +21,20 @@ export default function InvitationClient({
   ceremonyLabel,
   partyLabel,
   slug,
+  accessCode,
 }: Props) {
-  // Intro cinematic
+  // Access gate (if accessCode exists)
+  const [unlocked, setUnlocked] = useState<boolean>(() => !accessCode);
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState(false);
+
+  // Intro cinematic (starts only after unlock)
   const [introDone, setIntroDone] = useState(false);
   useEffect(() => {
+    if (!unlocked) return;
     const t = setTimeout(() => setIntroDone(true), 2400);
     return () => clearTimeout(t);
-  }, []);
+  }, [unlocked]);
 
   // RSVP modal
   const [open, setOpen] = useState(false);
@@ -75,7 +83,6 @@ export default function InvitationClient({
   const [qrOpen, setQrOpen] = useState(false);
 
   useEffect(() => {
-    // client-only, safe
     if (typeof window !== "undefined") setShareUrl(window.location.href);
   }, []);
 
@@ -86,7 +93,6 @@ export default function InvitationClient({
       setCopied(true);
       setTimeout(() => setCopied(false), 900);
     } catch {
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = shareUrl;
       document.body.appendChild(ta);
@@ -100,6 +106,7 @@ export default function InvitationClient({
 
   async function nativeShare() {
     if (!shareUrl) return;
+
     const payload = {
       title: title || "CEREMO",
       text: "Invitația noastră",
@@ -116,8 +123,53 @@ export default function InvitationClient({
       }
     }
 
-    // fallback: copy
     await copyLink();
+  }
+
+  // Gate screen (before intro)
+  if (!unlocked) {
+    return (
+      <main className="min-h-screen bg-[#0B0B0C] flex items-center justify-center px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur"
+        >
+          <h1 className="text-xl font-semibold text-white">Access required</h1>
+          <p className="mt-2 text-sm text-white/70">
+            Introdu codul pentru a deschide invitația.
+          </p>
+
+          <div className="mt-5">
+            <input
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setCodeError(false);
+              }}
+              placeholder="Cod"
+              className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:ring-2 focus:ring-white/15"
+            />
+            {codeError && (
+              <p className="mt-2 text-xs text-red-300">Cod greșit.</p>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              const ok = (code || "").trim() === (accessCode || "").trim();
+              if (!ok) return setCodeError(true);
+              setUnlocked(true);
+              setIntroDone(false);
+            }}
+            className="mt-5 w-full rounded-xl bg-white text-black px-4 py-2 text-sm"
+          >
+            Deschide
+          </button>
+        </motion.div>
+      </main>
+    );
   }
 
   // Intro screen (shared element IDs)
@@ -163,6 +215,7 @@ export default function InvitationClient({
     );
   }
 
+  // Main invitation
   return (
     <main className="min-h-screen bg-[#FAF9F7] flex items-center justify-center px-6">
       <motion.section
@@ -249,7 +302,6 @@ export default function InvitationClient({
             </button>
           </div>
 
-          {/* subtle url hint */}
           {shareUrl ? (
             <p className="mt-2 text-[11px] text-neutral-500 truncate max-w-[280px]">
               {shareUrl}

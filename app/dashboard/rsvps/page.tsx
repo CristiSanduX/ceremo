@@ -83,6 +83,25 @@ export default async function RsvpsPage({
           )}
         </div>
       </div>
+
+      <div className="mt-6 flex items-center justify-between">
+  <div className="flex gap-4 text-sm">
+    <span className="px-3 py-1 rounded-full bg-green-100 text-green-700">
+      Particip: {yes}
+    </span>
+    <span className="px-3 py-1 rounded-full bg-red-100 text-red-700">
+      Nu pot: {no}
+    </span>
+  </div>
+
+  <a
+    href={`/api/rsvps/export?slug=${encodeURIComponent(slug)}`}
+    className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+  >
+    Export CSV
+  </a>
+</div>
+
     </main>
   );
 }
