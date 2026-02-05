@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 
 type Props = {
   title: string;
@@ -22,13 +23,12 @@ export default function InvitationClient({
 }: Props) {
   // Intro cinematic
   const [introDone, setIntroDone] = useState(false);
-
   useEffect(() => {
     const t = setTimeout(() => setIntroDone(true), 2400);
     return () => clearTimeout(t);
   }, []);
 
-  // RSVP modal state
+  // RSVP modal
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [attending, setAttending] = useState<null | boolean>(true);
@@ -67,6 +67,57 @@ export default function InvitationClient({
     } catch {
       setStatus("error");
     }
+  }
+
+  // Share / QR
+  const [shareUrl, setShareUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  useEffect(() => {
+    // client-only, safe
+    if (typeof window !== "undefined") setShareUrl(window.location.href);
+  }, []);
+
+  async function copyLink() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 900);
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = shareUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 900);
+    }
+  }
+
+  async function nativeShare() {
+    if (!shareUrl) return;
+    const payload = {
+      title: title || "CEREMO",
+      text: "Invitația noastră",
+      url: shareUrl,
+    };
+
+    // Prefer native share on mobile
+    if (navigator.share && (!navigator.canShare || navigator.canShare(payload))) {
+      try {
+        await navigator.share(payload);
+        return;
+      } catch {
+        // user cancelled -> ignore
+      }
+    }
+
+    // fallback: copy
+    await copyLink();
   }
 
   // Intro screen (shared element IDs)
@@ -112,7 +163,6 @@ export default function InvitationClient({
     );
   }
 
-  // Main invitation
   return (
     <main className="min-h-screen bg-[#FAF9F7] flex items-center justify-center px-6">
       <motion.section
@@ -162,11 +212,12 @@ export default function InvitationClient({
           </motion.div>
         )}
 
+        {/* Actions */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.9, ease: "easeOut" }}
-          className="mt-14 flex justify-center"
+          className="mt-14 flex flex-col items-center gap-3"
         >
           <button
             onClick={() => setOpen(true)}
@@ -174,9 +225,40 @@ export default function InvitationClient({
           >
             Confirmă prezența
           </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={nativeShare}
+              className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+            >
+              Share
+            </button>
+
+            <button
+              onClick={copyLink}
+              className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+            >
+              {copied ? "Copied ✓" : "Copy link"}
+            </button>
+
+            <button
+              onClick={() => setQrOpen(true)}
+              className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+            >
+              QR
+            </button>
+          </div>
+
+          {/* subtle url hint */}
+          {shareUrl ? (
+            <p className="mt-2 text-[11px] text-neutral-500 truncate max-w-[280px]">
+              {shareUrl}
+            </p>
+          ) : null}
         </motion.div>
       </motion.section>
 
+      {/* RSVP Modal */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -264,6 +346,64 @@ export default function InvitationClient({
                   A apărut o eroare. Încearcă din nou.
                 </p>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* QR Modal */}
+      <AnimatePresence>
+        {qrOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center px-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              aria-label="Close"
+              onClick={() => setQrOpen(false)}
+              className="absolute inset-0 bg-black/30"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative w-full max-w-sm rounded-2xl bg-white shadow-xl border border-neutral-200 p-6 text-center"
+            >
+              <h2 className="text-lg font-semibold text-neutral-900">QR</h2>
+              <p className="mt-1 text-sm text-neutral-600">
+                Scanează pentru a deschide invitația.
+              </p>
+
+              <div className="mt-6 flex justify-center">
+                <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+                  <QRCodeCanvas value={shareUrl || ""} size={220} />
+                </div>
+              </div>
+
+              {shareUrl ? (
+                <p className="mt-4 text-[11px] text-neutral-500 break-all">
+                  {shareUrl}
+                </p>
+              ) : null}
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  onClick={() => setQrOpen(false)}
+                  className="text-sm text-neutral-600 hover:text-neutral-900"
+                >
+                  Închide
+                </button>
+                <button
+                  onClick={copyLink}
+                  className="rounded-xl bg-neutral-900 px-4 py-2 text-sm text-white"
+                >
+                  {copied ? "Copied ✓" : "Copy link"}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
