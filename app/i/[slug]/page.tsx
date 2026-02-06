@@ -10,7 +10,7 @@ export default async function InvitationPage({
 
   const { data, error } = await supabaseServer
     .from("invitations")
-    .select("title, date_label, message, access_code")
+    .select("title, date_label, message, access_code, template_id")
     .eq("slug", slug)
     .single();
 
@@ -37,6 +37,7 @@ export default async function InvitationPage({
       dateLabel={data.date_label}
       message={data.message}
       accessCode={data.access_code}
+      templateId={data.template_id}
       ceremonyLabel={null}
       partyLabel={null}
     />

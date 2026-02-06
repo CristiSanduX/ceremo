@@ -12,6 +12,7 @@ type Props = {
   partyLabel?: string | null;
   slug?: string;
   accessCode?: string | null;
+  templateId?: string | null;
 };
 
 export default function InvitationClient({
@@ -22,7 +23,40 @@ export default function InvitationClient({
   partyLabel,
   slug,
   accessCode,
+  templateId,
 }: Props) {
+  // Theme (by templateId)
+  const tpl = (templateId || "ivory").toLowerCase();
+
+  const theme =
+    tpl === "night"
+      ? {
+          mainBg: "#0B0B0C",
+          text: "text-white",
+          subtext: "text-white/70",
+          line: "bg-white/15",
+          buttonGhost: "border-white/15 text-white hover:bg-white/5",
+          buttonPrimary: "bg-white text-black",
+        }
+      : tpl === "minimal"
+      ? {
+          mainBg: "#FFFFFF",
+          text: "text-neutral-900",
+          subtext: "text-neutral-600",
+          line: "bg-neutral-200",
+          buttonGhost: "border-neutral-300 text-neutral-800 hover:bg-neutral-50",
+          buttonPrimary: "bg-neutral-900 text-white",
+        }
+      : {
+          // ivory default
+          mainBg: "#FAF9F7",
+          text: "text-neutral-900",
+          subtext: "text-neutral-600",
+          line: "bg-neutral-300",
+          buttonGhost: "border-neutral-300 text-neutral-800 hover:bg-white",
+          buttonPrimary: "bg-neutral-900 text-white",
+        };
+
   // Access gate (if accessCode exists)
   const [unlocked, setUnlocked] = useState<boolean>(() => !accessCode);
   const [code, setCode] = useState("");
@@ -119,7 +153,7 @@ export default function InvitationClient({
         await navigator.share(payload);
         return;
       } catch {
-        // user cancelled -> ignore
+        // cancelled -> ignore
       }
     }
 
@@ -172,7 +206,7 @@ export default function InvitationClient({
     );
   }
 
-  // Intro screen (shared element IDs)
+  // Intro screen (shared element IDs) — keep cinematic dark
   if (!introDone) {
     return (
       <main className="min-h-screen bg-[#0B0B0C] flex items-center justify-center px-6">
@@ -215,9 +249,12 @@ export default function InvitationClient({
     );
   }
 
-  // Main invitation
+  // Main invitation (theme applied)
   return (
-    <main className="min-h-screen bg-[#FAF9F7] flex items-center justify-center px-6">
+    <main
+      className="min-h-screen flex items-center justify-center px-6"
+      style={{ background: theme.mainBg }}
+    >
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -226,7 +263,7 @@ export default function InvitationClient({
       >
         <motion.h1
           layoutId="invitation-title"
-          className="text-4xl md:text-5xl font-serif tracking-tight text-neutral-900"
+          className={`text-4xl md:text-5xl font-serif tracking-tight ${theme.text}`}
         >
           {title}
         </motion.h1>
@@ -234,20 +271,20 @@ export default function InvitationClient({
         {dateLabel ? (
           <motion.p
             layoutId="invitation-date"
-            className="mt-4 text-sm tracking-wide uppercase text-neutral-600"
+            className={`mt-4 text-sm tracking-wide uppercase ${theme.subtext}`}
           >
             {dateLabel}
           </motion.p>
         ) : null}
 
-        <div className="my-10 h-px w-24 mx-auto bg-neutral-300" />
+        <div className={`my-10 h-px w-24 mx-auto ${theme.line}`} />
 
         {message ? (
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.9, ease: "easeOut" }}
-            className="text-base leading-relaxed text-neutral-700"
+            className={`text-base leading-relaxed ${theme.subtext}`}
           >
             {message}
           </motion.p>
@@ -258,7 +295,7 @@ export default function InvitationClient({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.9, ease: "easeOut" }}
-            className="mt-10 space-y-2 text-sm text-neutral-600"
+            className={`mt-10 space-y-2 text-sm ${theme.subtext}`}
           >
             {ceremonyLabel ? <p>{ceremonyLabel}</p> : null}
             {partyLabel ? <p>{partyLabel}</p> : null}
@@ -274,7 +311,7 @@ export default function InvitationClient({
         >
           <button
             onClick={() => setOpen(true)}
-            className="rounded-full border border-neutral-300 px-5 py-2 text-sm text-neutral-800 hover:bg-white transition"
+            className={`rounded-full border px-5 py-2 text-sm transition ${theme.buttonGhost}`}
           >
             Confirmă prezența
           </button>
@@ -282,35 +319,35 @@ export default function InvitationClient({
           <div className="flex items-center gap-2">
             <button
               onClick={nativeShare}
-              className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+              className={`rounded-full border px-4 py-2 text-xs transition ${theme.buttonGhost}`}
             >
               Share
             </button>
 
             <button
               onClick={copyLink}
-              className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+              className={`rounded-full border px-4 py-2 text-xs transition ${theme.buttonGhost}`}
             >
               {copied ? "Copied ✓" : "Copy link"}
             </button>
 
             <button
               onClick={() => setQrOpen(true)}
-              className="rounded-full border border-neutral-300 px-4 py-2 text-xs text-neutral-700 hover:bg-white transition"
+              className={`rounded-full border px-4 py-2 text-xs transition ${theme.buttonGhost}`}
             >
               QR
             </button>
           </div>
 
           {shareUrl ? (
-            <p className="mt-2 text-[11px] text-neutral-500 truncate max-w-[280px]">
+            <p className={`mt-2 text-[11px] truncate max-w-[280px] ${theme.subtext}`}>
               {shareUrl}
             </p>
           ) : null}
         </motion.div>
       </motion.section>
 
-      {/* RSVP Modal */}
+      {/* RSVP Modal (kept white for MVP) */}
       <AnimatePresence>
         {open && (
           <motion.div

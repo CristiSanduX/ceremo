@@ -13,6 +13,8 @@ const [accessCode, setAccessCode] = useState("");
   const [errorMsg, setErrorMsg] = useState<string>("");
 
   const canSubmit = useMemo(() => title.trim().length >= 3, [title]);
+  const [templateId, setTemplateId] = useState<"ivory" | "night" | "minimal">("ivory");
+
 
   async function createInvitation() {
     if (!canSubmit) return;
@@ -29,6 +31,7 @@ const [accessCode, setAccessCode] = useState("");
           dateLabel,
           message,
 accessCode: accessCode.trim() || null,
+templateId,
         }),
       });
 
@@ -87,6 +90,20 @@ accessCode: accessCode.trim() || null,
               placeholder="Text invitație..."
             />
           </div>
+
+          <div>
+  <label className="text-xs text-neutral-600">Template</label>
+  <select
+    value={templateId}
+    onChange={(e) => setTemplateId(e.target.value as any)}
+    className="mt-2 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-200 bg-white"
+  >
+    <option value="ivory">Ivory (warm minimal)</option>
+    <option value="night">Night (dark luxury)</option>
+    <option value="minimal">Minimal (ultra clean)</option>
+  </select>
+</div>
+
 
           <div>
             <label className="text-xs text-neutral-600">Access code (opțional)</label>
